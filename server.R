@@ -4,6 +4,7 @@ library(rworldmap)
 library(viridis)
 library(leaflet)
 library(r2d3) #d3 visualization
+library(plotly)
 
 
 server <- function(input, output) {
@@ -84,12 +85,115 @@ server <- function(input, output) {
   })
   
   #==========================
+
+  output$osriResult <- renderPlot({
+    OSRI_summary <- read.csv("./Data/OSRI_summary.csv")
+    plot(OSRI_summary[c(3,2,1)],
+         pch = 19,
+         cex = .7,
+         bg = par("bg"),
+         col = c("purple","green", "tomato"))
+    
+  })
   
-  output$d3 <- renderD3({
-    r2d3(
-      CPD <- read.csv("./Data/genderData.csv")
-    )
+  output$mascAndro <- renderPlot({
+    OSRI_summary <- read.csv("./Data/OSRI_summary.csv")
+        plot(OSRI_summary[c(2,1)],  # x = Androgyny y = Masculine
+         pch = c(19, 17),
+         cex = .7,
+         col = c("purple","green"))
+    
+  })
+  output$femAndro <- renderPlot({
+    OSRI_summary <- read.csv("./Data/OSRI_summary.csv")
+    plot(OSRI_summary[-1], # x = Androgyny y = Feminine
+         pch = c(19, 17),
+         cex = .7,
+         col = c("purple","green"))
+    
+    
+    
+  })
+  
+  output$femMasc <- renderPlot({
+    OSRI_summary <- read.csv("./Data/OSRI_summary.csv")
+    plot(OSRI_summary[c(1,3)],
+         type = 'p',
+         pch = 19,
+         cex = .7,
+         col = c("purple", "green"))
+    
   })
   
   
+  output$volcanoPlot <- renderPlotly({
+    OSRI_summary <- read.csv("./Data/OSRI_summary.csv")
+    osriDF_new <- read.csv("./Data/osriDF_new.csv")
+    plot_ly (osriDF_new,
+             type = 'surface',
+             z = ~volcano )
+    
+    v = plot_ly (OSRI_summary,
+                 type = 'surface',
+                 z = ~volcano ) %>% 
+      layout(
+             xaxis = list(showgrid = FALSE),
+             yaxis = list(showgrid = FALSE))
+    
+    
+  })
+  
+  output$bublePlot <- renderPlotly({
+    by_country <- read.csv("./Data/by_country.csv")
+    library(plotly)
+    
+    vline <- function(x = 0, color = "black") {
+      list(
+        type = "line", 
+        y0 = 0, 
+        y1 = 1, 
+        yref = "paper",
+        x0 = x, 
+        x1 = x, 
+        line = list(color = color)
+      )
+    }
+    
+    hline <- function(y = 0, color = "black") {
+      list(
+        type = "line", 
+        x0 = 0, 
+        x1 = 1, 
+        xref = "paper",
+        y0 = y, 
+        y1 = y, 
+        line = list(color = color)
+      )
+    }
+    
+    # top 20 countries
+    plot_ly(by_country, x = ~mean_masc, y = ~mean_fem, text = ~IP, type = 'scatter', 
+                      mode = 'markers', size = ~count, color = ~IP, colors = 'Paired',
+                      #Choosing the range of the bubbles' sizes:
+                      sizes = c(30, 90),
+                      marker = list(opacity = 0.5, sizemode = 'diameter')) %>%
+      layout(xaxis = list(showgrid = T),
+             yaxis = list(showgrid = T),
+             shapes = list(vline(3), hline(3)),
+             showlegend = T)
+  })
+  
+  
+  output$twoDhist <- renderPlotly({
+    result <- read.csv("./Data/result.csv")
+    OSRI_summary <- read.csv("./Data/OSRI_summary.csv")
+    count <- with(result, table(Fem_Score, Masc_Score))
+    plot_ly(OSRI_summary, x = ~Masculine, y = ~Feminine, z = ~count) %>%
+      layout(xaxis = list(showgrid = FALSE),
+             yaxis = list(showgrid = FALSE)) %>% 
+      add_histogram2d()
+    
+    
+    
+  })
 }
